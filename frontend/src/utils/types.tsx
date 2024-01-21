@@ -32,3 +32,11 @@ export interface Student {
   active: boolean;
   banned: boolean;
 }
+
+// - format: { "id": int, "presence": PR | EX | UN }
+export interface Attendance {
+  id: number;
+  student: Student;
+  presence: string;
+  date: string;
+}

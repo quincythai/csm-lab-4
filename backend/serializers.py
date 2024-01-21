@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from backend.models import User, Student, Mentor, Section, Course
+from backend.models import User, Student, Mentor, Section, Course, Attendance
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -41,3 +41,9 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = ("id", "user", "section", "course", "active", "banned")
 
+class AttendanceSerializer(serializers.ModelSerializer):
+    student = StudentSerializer()
+    
+    class Meta:
+        model = Attendance
+        fields = ("id", "student", "date", "presence")

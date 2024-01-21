@@ -1,55 +1,57 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { Attendance, Student as StudentType } from "../utils/types";
+import { Student as StudentType } from "../utils/types";
+import { Attendance } from "../utils/types";
+import { useParams } from "react-router";
 import Cookies from "js-cookie";
 
 export const Student = () => {
   const [student, setStudent] = useState<StudentType>(undefined as never);
   const [attendances, setAttendances] = useState<Attendance[]>([]);
-  const { id } = useParams();
+  const { id } = useParams<string>();
 
   useEffect(() => {
-    fetch(`/api/students/${id}/details/`)
+    fetch(`/api/students/${id}/details`)
       .then((res) => res.json())
       .then((data) => {
         setStudent(data);
       });
 
-    fetch(`/api/students/${id}/attendances/`)
+    // from urls.py
+    console.log("Fetching attendances...");
+    fetch(`/api/students/${id}/attendances`)
       .then((res) => res.json())
       .then((data) => {
-        // sort by date
-        data.sort((a: Attendance, b: Attendance) => {
-          const dateA = new Date(a.date);
-          const dateB = new Date(b.date);
-          return dateA.getTime() - dateB.getTime();
-        });
+        console.log("Attendances:", data);
         setAttendances(data);
       });
   }, []);
 
+  // - format: { "id": int, "presence": PR | EX | UN }
   const handleAttendanceChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-    attendanceId: number
+    attendanceId: number,
+    newAttendanceValue: string
   ) => {
-    const newAttendances = [...attendances];
-    const attendance = newAttendances.find((a) => a.id === attendanceId);
-    if (attendance) {
-      attendance.presence = e.target.value;
-    }
+    // Update the state locally
+    const newAttendances = attendances.map((attendance) =>
+      attendance.id === attendanceId
+        ? { ...attendance, presence: newAttendanceValue }
+        : attendance
+    );
     setAttendances(newAttendances);
 
-    // update database
+    // Update the database
     fetch(`/api/students/${id}/attendances/`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         "X-CSRFToken": Cookies.get("csrftoken") ?? "",
       },
-      body: JSON.stringify({
-        id: attendanceId,
-        presence: e.target.value,
-      }),
+      body: JSON.stringify({ presence: newAttendanceValue }),
+    }).then((res) => {
+      if (!res.ok) {
+        console.error("Failed to update attendance in the database");
+        // Optionally handle errors
+      }
     });
   };
 
@@ -68,18 +70,23 @@ export const Student = () => {
             Mentor: {student.section.mentor.user.first_name}{" "}
             {student.section.mentor.user.last_name}
           </p>
-          <p>Attendances:</p>
+          <p>Attendances: </p>
           <ul>
             {attendances.map((attendance) => (
               <li key={attendance.id}>
-                {attendance.date}:{" "}
+                {attendance.date}:
                 <select
-                  defaultValue={attendance.presence}
-                  onChange={(e) => handleAttendanceChange(e, attendance.id)}
+                  name="presence"
+                  id="presence"
+                  value={attendance.presence}
+                  onChange={(e) =>
+                    handleAttendanceChange(attendance.id, e.target.value)
+                  }
                 >
+                  {/* - format: { "id": int, "presence": PR | EX | UN } */}
                   <option value="PR">Present</option>
-                  <option value="EX">Excused Absence</option>
-                  <option value="UN">Unexcused Absence</option>
+                  <option value="EX">Excused absence</option>
+                  <option value="UN">Unexcused absence</option>
                 </select>
               </li>
             ))}
