@@ -29,3 +29,10 @@ class Section(models.Model):
 
 class Course(models.Model):
     name = models.CharField(max_length=20)
+
+# ForeignKey - many Attendance to one student
+# present, excused absence, unexcused absence
+class Attendance(models.Model):
+    student = models.ForeignKey("Student", on_delete=models.CASCADE)
+    presence = models.CharField(max_length=20)
+    date = models.DateField()
